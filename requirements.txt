@@ -1,0 +1,21 @@
+# Virtual environments
+hr_bot/
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Packages
+Lib/
+site-packages/
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

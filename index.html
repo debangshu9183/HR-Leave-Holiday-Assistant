@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TuTeck HR Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --orange: #F15A29;
+    --orange-light: #FF7A45;
+    --orange-glow: rgba(241,90,41,0.25);
+    --cyan: #00B4D8;
+    --cyan-glow: rgba(0,180,216,0.2);
+    --green: #3CB371;
+    --yellow: #F5C518;
+    --blue: #1B72BE;
+    --bg: #0A0C10;
+    --bg2: #0F1219;
+    --bg3: #161B27;
+    --border: rgba(255,255,255,0.07);
+    --text: #F0F2F7;
+    --muted: #6B7280;
+    --card: rgba(22,27,39,0.8);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── BACKGROUND FX ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(241,90,41,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 10% 80%, rgba(0,180,216,0.1) 0%, transparent 55%),
+      radial-gradient(ellipse 30% 30% at 50% 50%, rgba(27,114,190,0.07) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Animated grid */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    pointer-events: none;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 64px 1fr;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    background: rgba(10,12,16,0.9);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 0; }
+
+  .logo-img {
+    height: 46px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    /* logo has black bg — invert makes it transparent-friendly on dark */
+    filter: brightness(1);
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px;
+    background: rgba(59,179,113,0.1); border: 1px solid rgba(59,179,113,0.3);
+    font-size: 12px; color: #3CB371;
+  }
+  .status-pill::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: #3CB371;
+    box-shadow: 0 0 8px #3CB371;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .topbar-btn {
+    padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--muted); font-size: 12px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topbar-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    padding: 20px 0;
+  }
+
+  .sidebar-section-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 0 18px 10px;
+  }
+
+  .q-category {
+    margin-bottom: 8px;
+  }
+
+  .q-category-header {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 6px 18px;
+    color: var(--orange); cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .q-category-header .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--orange); flex-shrink: 0;
+  }
+  .q-category-header.cyan-cat { color: var(--cyan); }
+  .q-category-header.cyan-cat .dot { background: var(--cyan); }
+
+  .q-list { display: flex; flex-direction: column; gap: 2px; }
+
+  .q-chip {
+    margin: 0 10px;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 11.5px; line-height: 1.4;
+    color: #9CA3AF; cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.18s;
+    position: relative; overflow: hidden;
+  }
+  .q-chip:hover {
+    background: rgba(241,90,41,0.08);
+    border-color: rgba(241,90,41,0.3);
+    color: var(--text);
+    transform: translateX(2px);
+  }
+  .q-chip .q-num {
+    font-weight: 700; color: var(--orange); margin-right: 4px;
+    font-size: 10px;
+  }
+  .q-chip.cyan-chip:hover {
+    background: rgba(0,180,216,0.08);
+    border-color: rgba(0,180,216,0.3);
+  }
+  .q-chip.cyan-chip .q-num { color: var(--cyan); }
+
+  .sidebar-scroll {
+    overflow-y: auto; flex: 1;
+    scrollbar-width: thin; scrollbar-color: var(--bg3) transparent;
+  }
+
+  .sidebar-footer {
+    padding: 16px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+    line-height: 1.5;
+  }
+  .sidebar-footer strong { color: var(--orange); }
+
+  /* ── CHAT AREA ── */
+  .chat-area {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  /* Hero banner */
+  .chat-hero {
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(241,90,41,0.04) 0%, rgba(0,180,216,0.04) 100%);
+  }
+  .chat-hero-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .hero-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--orange), #FF9F5A);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 20px var(--orange-glow);
+  }
+  .hero-text h1 {
+    font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700;
+    background: linear-gradient(90deg, var(--text) 0%, var(--orange-light) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-text p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .chat-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chat-tag {
+    padding: 4px 12px; border-radius: 20px; font-size: 11px;
+    border: 1px solid var(--border); color: var(--muted);
+    background: var(--bg3);
+  }
+  .chat-tag.active { border-color: var(--orange); color: var(--orange); background: var(--orange-glow); }
+
+  /* Messages */
+  .messages {
+    flex: 1; overflow-y: auto; padding: 24px 32px;
+    display: flex; flex-direction: column; gap: 20px;
+    scrollbar-width: thin; scrollbar-color: var(--bg3) transparent;
+  }
+
+  /* Welcome card */
+  .welcome-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px;
+    backdrop-filter: blur(10px);
+    animation: fadeUp 0.6s ease both;
+  }
+  .welcome-card h2 {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--orange), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .welcome-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  .quick-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-top: 18px;
+  }
+  .quick-card {
+    padding: 14px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--bg3);
+    cursor: pointer; transition: all 0.2s;
+    font-size: 12px; color: var(--muted); line-height: 1.4;
+  }
+  .quick-card:hover { border-color: var(--orange); color: var(--text); transform: translateY(-2px); }
+  .quick-card .qc-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(241,90,41,0.12); color: var(--orange);
+    margin-bottom: 8px;
+  }
+  .quick-card .qc-label { font-weight: 600; color: var(--text); font-size: 12px; margin-bottom: 3px; }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 12px; animation: fadeUp 0.35s ease both; }
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .msg.bot .msg-avatar {
+    background: linear-gradient(135deg, var(--orange), #FF9F5A);
+    box-shadow: 0 2px 12px var(--orange-glow);
+  }
+  .msg.user .msg-avatar {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    box-shadow: 0 2px 12px var(--cyan-glow);
+  }
+
+  .msg-bubble {
+    max-width: 72%; padding: 14px 18px; border-radius: 16px;
+    font-size: 13.5px; line-height: 1.65;
+  }
+  .msg.bot .msg-bubble {
+    background: var(--card); border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    backdrop-filter: blur(10px);
+  }
+  .msg.user .msg-bubble {
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    color: white; border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 20px var(--orange-glow);
+  }
+
+  .msg-meta {
+    font-size: 10px; color: var(--muted); margin-top: 4px;
+    padding: 0 4px;
+  }
+  .msg.user .msg-meta { text-align: right; }
+
+  /* Typing indicator */
+  .typing-bubble { padding: 14px 18px; }
+  .typing-dots { display: flex; gap: 5px; align-items: center; }
+  .typing-dots span {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--orange);
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 32px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(10,12,16,0.6);
+    backdrop-filter: blur(20px);
+  }
+
+  .input-wrap {
+    display: flex; align-items: flex-end; gap: 12px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px 10px 10px 18px;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-glow); }
+
+  .input-wrap textarea {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    resize: none; line-height: 1.5; max-height: 120px;
+    min-height: 24px;
+  }
+  .input-wrap textarea::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 40px; height: 40px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    color: white; font-size: 18px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; box-shadow: 0 2px 12px var(--orange-glow);
+  }
+  .send-btn:hover { transform: scale(1.08); box-shadow: 0 4px 20px var(--orange-glow); }
+  .send-btn:active { transform: scale(0.96); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .input-hint {
+    font-size: 11px; color: var(--muted); margin-top: 8px;
+    text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .input-hint span { display: flex; align-items: center; gap: 4px; }
+
+  /* Upload area */
+  .upload-area {
+    display: flex; gap: 10px; margin-bottom: 12px;
+  }
+  .upload-btn {
+    flex: 1; padding: 10px; border-radius: 10px;
+    border: 1px dashed var(--border); background: transparent;
+    color: var(--muted); font-size: 12px; cursor: pointer;
+    transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .upload-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-glow); }
+  .upload-btn.loaded { border-color: var(--green); color: var(--green); background: rgba(59,179,113,0.08); border-style: solid; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+
+  /* Decorative corner elements */
+  .corner-deco {
+    position: fixed; pointer-events: none; z-index: 0;
+    opacity: 0.5;
+  }
+  .corner-deco.br {
+    bottom: 0; right: 0; width: 300px; height: 300px;
+    background: radial-gradient(ellipse at bottom right, rgba(241,90,41,0.1) 0%, transparent 70%);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    padding: 12px 20px; border-radius: 10px;
+    background: var(--bg3); border: 1px solid var(--green);
+    color: var(--green); font-size: 13px;
+    animation: fadeUp 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  /* Responsive tweak */
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 64px 1fr; }
+    .sidebar { display: none; }
+    .messages, .input-area, .chat-hero { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="corner-deco br"></div>
+
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo-area">
+      <img src="tuteck-logo.png" alt="TuTeck Technologies" class="logo-img"/>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill">HR Assistant Online</div>
+      <button class="topbar-btn" onclick="clearChat()">Clear Chat</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section-title">Quick Questions</div>
+    <div class="sidebar-scroll">
+
+      <!-- Direct Retrieval: Leave Policy -->
+      <div class="q-category">
+        <div class="q-category-header">
+          <span class="dot"></span>Leave Policy — Direct
+        </div>
+        <div class="q-list">
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="According to the leave policy, how many earned leave days are employees eligible for annually during the probation period?">
+            <span class="q-num">Q1</span>Earned leave days during probation?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="How many earned leave days are employees eligible for annually after confirmation according to the policy?">
+            <span class="q-num">Q2</span>Annual leave after confirmation?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="According to the leave policy table, how many leave days are credited in Quarter 4 during the probation period?">
+            <span class="q-num">Q3</span>Q4 credits during probation?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="According to the leave policy, when are the 20 annual leave days credited after confirmation?">
+            <span class="q-num">Q4</span>When are 20 leave days credited?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="What does Quarter 1 represent in the leave credit table according to the policy?">
+            <span class="q-num">Q5</span>What is Quarter 1 in leave table?
+          </div>
+        </div>
+      </div>
+
+      <!-- Direct Retrieval: Holiday Calendar -->
+      <div class="q-category">
+        <div class="q-category-header cyan-cat">
+          <span class="dot"></span>Holiday Calendar — Direct
+        </div>
+        <div class="q-list">
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="On which date is Republic Day observed according to the holiday list?">
+            <span class="q-num">Q6</span>Republic Day date?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="Which holiday is scheduled on 25 December 2026?">
+            <span class="q-num">Q7</span>Holiday on 25 Dec 2026?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="According to the holiday calendar, which festival is observed on 14 September 2026?">
+            <span class="q-num">Q8</span>Festival on 14 Sep 2026?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="What holiday classification is assigned to Netaji Jayanti in the list?">
+            <span class="q-num">Q9</span>Netaji Jayanti classification?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="According to the holiday calendar, on which date is Muharram observed?">
+            <span class="q-num">Q10</span>Muharram date?
+          </div>
+        </div>
+      </div>
+
+      <!-- Reasoning: Leave Policy -->
+      <div class="q-category">
+        <div class="q-category-header">
+          <span class="dot"></span>Leave Policy — Reasoning
+        </div>
+        <div class="q-list">
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="If an employee completes three quarters during the probation period, how many total earned leave days would they have accumulated according to the leave credit table, and how is this calculated?">
+            <span class="q-num">R1</span>Leave after 3 probation quarters?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="Based on the leave policy, how many additional leave days per year does a confirmed employee receive compared to an employee on probation?">
+            <span class="q-num">R2</span>Probation vs confirmed difference?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="According to the leave credit schedule during probation, which quarter provides the lowest number of leave days, and how does this affect the total annual leave allocation?">
+            <span class="q-num">R3</span>Which quarter gives fewest days?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="If an employee joins in Quarter 1, how many leave days will they receive by the end of Quarter 3 during probation, based on the quarterly credit pattern?">
+            <span class="q-num">R4</span>Days by end of Q3 if joined Q1?
+          </div>
+          <div class="q-chip" onclick="sendQ(this.dataset.q)" data-q="How is the 15 days of probation leave distributed across the four quarters, and what reasoning explains why one quarter has fewer days than the others?">
+            <span class="q-num">R5</span>15-day probation distribution?
+          </div>
+        </div>
+      </div>
+
+      <!-- Reasoning: Holiday Calendar -->
+      <div class="q-category">
+        <div class="q-category-header cyan-cat">
+          <span class="dot"></span>Holiday Calendar — Reasoning
+        </div>
+        <div class="q-list">
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="Based on the holiday calendar, how many holidays are classified as Holiday versus Restricted Holiday, and which type appears more frequently?">
+            <span class="q-num">R6</span>Holiday vs restricted count?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="Which month in 2026 contains the highest number of listed holidays, and how many holidays occur in that month?">
+            <span class="q-num">R7</span>Busiest holiday month of 2026?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="Are there any holidays occurring on consecutive days in the 2026 calendar, and if so, which festivals are they?">
+            <span class="q-num">R8</span>Any consecutive holidays?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="According to the holiday list, which festival is the first holiday of 2026 and which is the last, based on their dates?">
+            <span class="q-num">R9</span>First and last holiday of 2026?
+          </div>
+          <div class="q-chip cyan-chip" onclick="sendQ(this.dataset.q)" data-q="Looking at the holiday calendar, what pattern can be observed in how restricted holidays and regular holidays are distributed throughout the year?">
+            <span class="q-num">R10</span>Holiday distribution pattern?
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="sidebar-footer">
+      <strong>TuTeck Technologies</strong><br/>
+      HR Leave Policy & Holiday Calendar Assistant
+    </div>
+  </aside>
+
+  <!-- CHAT AREA -->
+  <main class="chat-area">
+    <!-- Hero -->
+    <div class="chat-hero">
+      <div class="chat-hero-top">
+        <div class="hero-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="hero-text">
+          <h1>HR Leave &amp; Holiday Assistant</h1>
+          <p>Powered by Groq AI &nbsp;&middot;&nbsp; Leave Policy &nbsp;&middot;&nbsp; Holiday Calendar 2026</p>
+        </div>
+      </div>
+      <div class="chat-tags">
+        <span class="chat-tag active">Leave Policy</span>
+        <span class="chat-tag active">Holiday List 2026</span>
+        <span class="chat-tag">Probation Rules</span>
+        <span class="chat-tag">Leave Accrual</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <!-- Welcome card -->
+      <div class="welcome-card">
+        <h2>Welcome to TuTeck HR Assistant</h2>
+        <p>Full access to your <strong style="color:var(--orange)">Leave Policy document</strong> and <strong style="color:var(--cyan)">Holiday Calendar 2026</strong>. Ask me anything — from leave balances and accrual schedules to holiday classifications.</p>
+        <div class="quick-grid">
+          <div class="quick-card" onclick="sendQ('How many earned leaves do I get during probation?')">
+            <span class="qc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <div class="qc-label">Probation Leave</div>
+            Quarterly credits &amp; totals
+          </div>
+          <div class="quick-card" onclick="sendQ('List all public holidays in 2026')">
+            <span class="qc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            </span>
+            <div class="qc-label">2026 Holiday List</div>
+            Full holiday calendar
+          </div>
+          <div class="quick-card" onclick="sendQ('What is the difference in leaves between probation and confirmed employee?')">
+            <span class="qc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </span>
+            <div class="qc-label">Leave Comparison</div>
+            Probation vs confirmed
+          </div>
+          <div class="quick-card" onclick="sendQ('Which month has the most holidays in 2026?')">
+            <span class="qc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <div class="qc-label">Holiday Analysis</div>
+            Month-wise breakdown
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <!-- Upload buttons -->
+      <div class="upload-area">
+        <label class="upload-btn" id="pdf-btn">
+          <input type="file" accept=".pdf" style="display:none" onchange="handleUpload(this,'pdf')"/>
+          Upload Leave Policy PDF
+        </label>
+        <label class="upload-btn" id="csv-btn">
+          <input type="file" accept=".csv" style="display:none" onchange="handleUpload(this,'csv')"/>
+          Upload Holiday List CSV
+        </label>
+      </div>
+      <div class="input-wrap">
+        <textarea
+          id="input"
+          placeholder="Ask about leave policy, holidays, accrual rules..."
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+          ➤
+        </button>
+      </div>
+      <div class="input-hint">
+        <span>⏎ Send</span>
+        <span>⇧⏎ New line</span>
+        <span>← Pick from sidebar</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8000';
+let history = [];
+let isLoading = false;
+
+// ── AUTO RESIZE TEXTAREA ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── SEND VIA KEYBOARD ──
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// ── SEND FROM SIDEBAR CHIP ──
+function sendQ(text) {
+  document.getElementById('input').value = text;
+  autoResize(document.getElementById('input'));
+  sendMessage();
+}
+
+// ── MAIN SEND ──
+async function sendMessage() {
+  if (isLoading) return;
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  autoResize(input);
+  appendMsg('user', text);
+
+  const typingId = appendTyping();
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/chat/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history })
+    });
+
+    removeTyping(typingId);
+
+    if (!res.ok) {
+      const err = await res.json();
+      appendMsg('bot', `Error: ${err.detail || 'Something went wrong.'}`);
+    } else {
+      const data = await res.json();
+      appendMsg('bot', data.answer);
+      history = data.history;
+    }
+  } catch (e) {
+    removeTyping(typingId);
+    appendMsg('bot', 'Could not reach the HR backend. Make sure it\'s running on <code>localhost:8000</code>.');
+  }
+
+  isLoading = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+// ── APPEND MESSAGE ──
+function appendMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.innerHTML = role === 'bot'
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = formatText(text);
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const inner = document.createElement('div');
+  inner.style.flex = '1';
+  inner.style.maxWidth = '72%';
+  if (role === 'user') {
+    inner.style.display = 'flex';
+    inner.style.flexDirection = 'column';
+    inner.style.alignItems = 'flex-end';
+  }
+  inner.appendChild(bubble);
+  inner.appendChild(meta);
+
+  div.appendChild(avatar);
+  div.appendChild(inner);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── FORMAT TEXT (basic markdown-ish) ──
+function formatText(t) {
+  return t
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:rgba(241,90,41,0.15);color:var(--orange);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
+    .replace(/\n/g, '<br/>');
+}
+
+// ── TYPING INDICATOR ──
+let typingCounter = 0;
+function appendTyping() {
+  const id = 'typing-' + (++typingCounter);
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+    <div class="msg-bubble typing-bubble">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ── FILE UPLOAD ──
+async function handleUpload(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const btn = document.getElementById(type === 'pdf' ? 'pdf-btn' : 'csv-btn');
+  btn.textContent = 'Uploading...';
+
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const res = await fetch(`${API_BASE}/upload/${type}`, { method: 'POST', body: form });
+    if (res.ok) {
+      btn.textContent = type === 'pdf' ? 'Leave Policy Loaded' : 'Holiday CSV Loaded';
+      btn.classList.add('loaded');
+      showToast(`${type.toUpperCase()} uploaded successfully.`);
+    } else {
+      btn.textContent = type === 'pdf' ? 'PDF Upload Failed' : 'CSV Upload Failed';
+      showToast('Upload failed — check backend.', true);
+    }
+  } catch {
+    btn.textContent = 'Backend Unreachable';
+    showToast('Backend not running on localhost:8000', true);
+  }
+}
+
+// ── CLEAR CHAT ──
+function clearChat() {
+  history = [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  // Re-add welcome
+  const wc = document.createElement('div');
+  wc.className = 'welcome-card';
+  wc.innerHTML = `<h2>Conversation Cleared</h2><p style="color:var(--muted);font-size:13px">Ready for a new session.</p>`;
+  msgs.appendChild(wc);
+}
+
+// ── TOAST ──
+function showToast(msg, error = false) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  if (error) t.style.borderColor = 'var(--orange)'; t.style.color = error ? 'var(--orange)' : 'var(--green)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
